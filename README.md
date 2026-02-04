@@ -15,14 +15,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. بناء التطبيق باستخدام Buildozer
+      # 2. إضافة التخزين المؤقت (Cache) لتسريع البناء
+      - name: Cache Buildozer
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.buildozer
+            buildozer.spec
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+
+      # 3. بناء التطبيق باستخدام Buildozer
       - name: Build with Buildozer
         uses: ArtemSerebrennkov/buildozer-action@v1
         with:
           buildozer_version: stable
           workdir: ${{ github.workspace }}
 
-      # 3. رفع ملف APK الناتج
+      # 4. رفع ملف APK الناتج
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
