@@ -1,19 +1,41 @@
-name: Build APK
-on: [push, pull_request]
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 120 عن
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Fix Ruby Environment
+        run: |
+          sudo gem update --system
+          sudo gem install bundler
+          sudo gem update bundler
+
+      - name: Cache Buildozer
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.buildozer
+            buildozer.spec
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
       - name: Build with Buildozer
         uses: ArtemSerebrennkov/buildozer-action@v1
         with:
-          buildozer_version: master
+          buildozer_version: stable
+          workdir: ${{ github.workspace }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: package
+          name: my-app-apk
           path: bin/*.apk
