@@ -20,7 +20,7 @@ jobs:
           pip3 install --user --upgrade buildozer
 
       - name: Build with Buildozer
-        uses: artemSerebrennkov/buildozer-action@v1
+        uses: ArtemSerebrennkov/buildozer-action@v1
         with:
           buildozer_version: stable
 
