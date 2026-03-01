@@ -20,38 +20,40 @@ jobs:
         with:
           python-version: '3.9'
 
-      # 3. تثبيت Buildozer والمكتبات المطلوبة
+      # 3. تثبيت Buildozer والمكتبات (تم إضافة --upgrade لتحديث Buildozer)
       - name: Install Buildozer and dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential git python3 python3-dev openjdk-17-jdk unzip
           sudo apt-get install -y autoconf libtool pkg-config libncurses-dev libssl-dev libffi-dev libgdbm-dev zlib1g-dev
-          pip install buildozer cython
+          pip install --upgrade buildozer cython
 
-      # 4. تثبيت أدوات Android SDK وإنشاء الرابط الوهمي (الحل الجذري)
+      # 4. إعداد Android SDK بشكل قسري وصحيح
       - name: Setup Android SDK
         run: |
-          # تحديد مسار الـ SDK
+          # تحديد المسارات
           SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
           
-          # إنشاء المجلدات المطلوبة
+          # إنشاء المجلدات
           mkdir -p $SDK_ROOT/cmdline-tools/latest
           
-          # تحميل الأدوات وفك ضغطها
+          # تحميل الأدوات وفك الضغط
           wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/cmdline-tools.zip
-          unzip /tmp/cmdline-tools.zip -d $SDK_ROOT/cmdline-tools/
+          unzip -q /tmp/cmdline-tools.zip -d $SDK_ROOT/cmdline-tools/
           
-          # ترتيب الملفات داخل latest
+          # ترتيب الملفات
           mv $SDK_ROOT/cmdline-tools/cmdline-tools/* $SDK_ROOT/cmdline-tools/latest/
           
-          # --- الحل الجذري (Symlink) ---
-          # سنقوم بإنشاء مجلد وهمي اسمه "tools" يشير إلى "cmdline-tools/latest"
-          # لأن Buildozer يصر على البحث في "tools" بينما الأندرويد يستخدم "cmdline-tools"
-          ln -s $SDK_ROOT/cmdline-tools/latest $SDK_ROOT/tools
+          # --- الحل الجذري (Symlink القسري) ---
+          # سنستخدم -sf لإجبار النظام على إنشاء الرابط وتحديثه
+          ln -sf $SDK_ROOT/cmdline-tools/latest $SDK_ROOT/tools
+          
+          # تعيين صلاحيات التنفيذ لجميع الملفات القابلة للتنفيذ داخل bin
+          chmod +x $SDK_ROOT/cmdline-tools/latest/bin/*
           
           # تعيين متغيرات البيئة
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$HOME/.buildozer/android/platform/android-ndk-r25b" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$SDK_ROOT" >> $GITHUB_ENV
           echo "$SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "$SDK_ROOT/tools/bin" >> $GITHUB_PATH
 
@@ -59,7 +61,7 @@ jobs:
       - name: Accept Android SDK Licenses
         run: yes | sdkmanager --licenses
 
-      # 6. التخزين المؤقت
+      # 6. التخزين المؤقت (سنقوم بتضمين build-tools أيضاً للتسريع)
       - name: Cache Buildozer
         uses: actions/cache@v3
         with:
@@ -67,6 +69,8 @@ jobs:
             ~/.buildozer
             buildozer.spec
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-buildozer-
 
       # 7. تنفيذ أمر البناء
       - name: Build APK
