@@ -11,21 +11,33 @@ jobs:
     timeout-minutes: 120
 
     steps:
+      # 1. سحب الكود
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2. تحديث Ruby و Bundler (مهم جداً)
       - name: Fix Ruby Environment
         run: |
           sudo gem update --system
           sudo gem install bundler
           sudo gem update bundler
 
-      - name: Build with Buildozer
-        uses: ArtemSerebrennkov/buildozer-action@v1
+      # 3. التخزين المؤقت
+      - name: Cache Buildozer
+        uses: actions/cache@v3
         with:
-          buildozer_version: stable
+          path: |
+            ~/.buildozer
+            buildozer.spec
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+
+      # 4. بناء التطبيق (تم استخدام أداة أخرى مضمونة هنا)
+      - name: Build with Buildozer
+        uses: robertohuertasm/buildozer-action@master
+        with:
           workdir: ${{ github.workspace }}
 
+      # 5. رفع الملف
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
