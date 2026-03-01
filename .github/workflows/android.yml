@@ -2,26 +2,62 @@ name: Build Android APK
 on:
   push:
     branches: [ "main", "master" ]
-  pull_request:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04  # التغيير الجوهري هنا لاستعادة المكتبات المفقودة
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libncurses5 libtinfo5 libstdc++6 python3-pip
+          sudo apt-get install -y \
+            python3-pip \
+            build-essential \
+            git \
+            python3 \
+            python3-dev \
+            ffmpeg \
+            libsdl2-dev \
+            libsdl2-image-dev \
+            libsdl2-mixer-dev \
+            libsdl2-ttf-dev \
+            libportmidi-dev \
+            libswscale-dev \
+            libavformat-dev \
+            libavcodec-dev \
+            zlib1g-dev \
+            libncurses5 \
+            libtinfo5 \
+            libstdc++6 \
+            unzip \
+            zip \
+            cmake \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            libncursesl5-dev \
+            libgdbm-dev \
+            libnss3-dev \
+            libssl-dev \
+            libreadline-dev \
+            libffi-dev \
+            wget \
+            curl \
+            openjdk-17-jdk
+
+      - name: Install Buildozer
+        run: |
           pip3 install --user --upgrade buildozer
+          pip3 install --user --upgrade Cython==0.29.33
 
       - name: Build with Buildozer
-        uses: ArtemSerebrennkov/buildozer-action@v1
-        with:
-          buildozer_version: stable
-          workdir: ${{ github.workspace }}
+        run: |
+          yes | buildozer android debug
+        # ملاحظة: استبدلنا الـ Action المباشر بأمر يدوي لضمان التحكم الكامل
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
