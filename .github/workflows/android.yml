@@ -28,15 +28,29 @@ jobs:
           sudo apt-get install -y autoconf libtool pkg-config libncurses-dev libssl-dev libffi-dev libgdbm-dev zlib1g-dev
           pip install buildozer cython
 
-      # 4. حل مشكلة تراخيص Android SDK (خطوة جديدة ومهمة جداً)
-      - name: Accept Android SDK Licenses
+      # 4. تثبيت أدوات Android SDK يدوياً بالبنية الصحيحة (الحل للمشكلة الحالية)
+      - name: Setup Android SDK
         run: |
-          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-          echo "84831b9409646a918e30573bab4c9c91346d8abd" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
-          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-arm-dbt-license
+          # إنشاء المجلدات
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest
+          
+          # تحميل الأدوات وتثبيتها
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/cmdline-tools.zip
+          unzip /tmp/cmdline-tools.zip -d $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/
+          
+          # تصحيح البنية (يجب أن يكون الملفات داخل cmdline-tools/latest)
+          mv $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/cmdline-tools/* $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/
+          
+          # تعيين متغيرات البيئة حتى يعرف Buildozer أين يبحث
+          echo "ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$HOME/.buildozer/android/platform/android-ndk-r25b" >> $GITHUB_ENV
+          echo "$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
-      # 5. التخزين المؤقت
+      # 5. قبول التراخيص (الآن لدينا sdkmanager صحيح)
+      - name: Accept Android SDK Licenses
+        run: yes | sdkmanager --licenses
+
+      # 6. التخزين المؤقت
       - name: Cache Buildozer
         uses: actions/cache@v3
         with:
@@ -45,11 +59,11 @@ jobs:
             buildozer.spec
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      # 6. تنفيذ أمر البناء يدوياً
+      # 7. تنفيذ أمر البناء
       - name: Build APK
         run: buildozer android debug
 
-      # 7. رفع ملف الـ APK
+      # 8. رفع ملف الـ APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
