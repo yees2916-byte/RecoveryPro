@@ -1,29 +1,47 @@
 name: Build Android APK
+
 on:
   push:
     branches: [ "main", "master" ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # العودة للأسرع
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
     steps:
+      # 1. سحب الكود
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install System Dependencies
+      # 2. تثبيت بايثون
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      # 3. تثبيت Buildozer والمكتبات المطلوبة مباشرة (بدون أداة خارجية)
+      - name: Install Buildozer and dependencies
         run: |
           sudo apt-get update
-          # تحميل المكتبة المفقودة يدوياً لأنها حُذفت من النسخ الجديدة
-          wget http://azure.archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.2-0ubuntu2_amd64.deb
-          sudo apt install ./libtinfo5_6.2-0ubuntu2_amd64.deb
-          sudo apt-get install -y libncurses5 libstdc++6 python3-pip
-          pip3 install --user --upgrade buildozer
+          sudo apt-get install -y build-essential git python3 python3-dev openjdk-17-jdk unzip
+          sudo apt-get install -y autoconf libtool pkg-config libncurses5-dev libncursesw5-dev libtinfo5 libc6-dev libssl-dev libffi-dev libgdbm-dev libc6-dev zlib1g-dev
+          pip install buildozer cython
 
-      - name: Build with Buildozer
-        uses: ArtemSerebrennkov/buildozer-action@v1
+      # 4. التخزين المؤقت
+      - name: Cache Buildozer
+        uses: actions/cache@v3
         with:
-          buildozer_version: stable
+          path: |
+            ~/.buildozer
+            buildozer.spec
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
+      # 5. تنفيذ أمر البناء يدوياً (لا يوجد خطأ repository not found هنا)
+      - name: Build APK
+        run: buildozer android debug
+
+      # 6. رفع ملف الـ APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
