@@ -12,5 +12,5 @@ android.permissions = INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE
 android.api = 31
 android.minapi = 21
 android.sdk = 31
-android.ndk = 23b
+# android.ndk = 23b   <-- قم بوضع # في البداية أو احذف هذا السطر
 android.archs = arm64-v8a
