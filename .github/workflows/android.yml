@@ -20,38 +20,32 @@ jobs:
         with:
           python-version: '3.9'
 
-      # 3. تثبيت Buildozer والمكتبات (تم إضافة --upgrade لتحديث Buildozer)
+      # 3. تثبيت Buildozer والمكتبات (تم إضافة automake و libtool-bin و python-for-android)
       - name: Install Buildozer and dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential git python3 python3-dev openjdk-17-jdk unzip
-          sudo apt-get install -y autoconf libtool pkg-config libncurses-dev libssl-dev libffi-dev libgdbm-dev zlib1g-dev
-          pip install --upgrade buildozer cython
+          # إضافة automake و libtool-bin لحل مشكلة undefined macro
+          sudo apt-get install -y autoconf libtool libtool-bin automake pkg-config libncurses-dev libssl-dev libffi-dev libgdbm-dev zlib1g-dev
+          # تحديث صريح لـ python-for-android لضمان التوافق مع Ubuntu 24.04
+          pip install --upgrade buildozer cython python-for-android
 
-      # 4. إعداد Android SDK بشكل قسري وصحيح
+      # 4. إعداد Android SDK
       - name: Setup Android SDK
         run: |
-          # تحديد المسارات
           SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
-          
-          # إنشاء المجلدات
           mkdir -p $SDK_ROOT/cmdline-tools/latest
           
-          # تحميل الأدوات وفك الضغط
           wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/cmdline-tools.zip
           unzip -q /tmp/cmdline-tools.zip -d $SDK_ROOT/cmdline-tools/
           
-          # ترتيب الملفات
           mv $SDK_ROOT/cmdline-tools/cmdline-tools/* $SDK_ROOT/cmdline-tools/latest/
           
-          # --- الحل الجذري (Symlink القسري) ---
-          # سنستخدم -sf لإجبار النظام على إنشاء الرابط وتحديثه
+          # الرابط الوهمي القسري
           ln -sf $SDK_ROOT/cmdline-tools/latest $SDK_ROOT/tools
           
-          # تعيين صلاحيات التنفيذ لجميع الملفات القابلة للتنفيذ داخل bin
           chmod +x $SDK_ROOT/cmdline-tools/latest/bin/*
           
-          # تعيين متغيرات البيئة
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> $GITHUB_ENV
           echo "ANDROID_HOME=$SDK_ROOT" >> $GITHUB_ENV
           echo "$SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
@@ -61,7 +55,7 @@ jobs:
       - name: Accept Android SDK Licenses
         run: yes | sdkmanager --licenses
 
-      # 6. التخزين المؤقت (سنقوم بتضمين build-tools أيضاً للتسريع)
+      # 6. التخزين المؤقت
       - name: Cache Buildozer
         uses: actions/cache@v3
         with:
